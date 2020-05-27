@@ -676,7 +676,14 @@ let sync_changed_fds_to_file_descr_watcher t =
       if Debug.file_descr_watcher
       then log_sync_changed_fds_to_file_descr_watcher t fd.file_descr desired;
       (try F.set F.watcher fd.file_descr desired with
-       | exn -> sync_changed_fd_failed t fd desired exn);
+       | exn ->
+          match Info.to_string(fd.info) with
+          | "ocurlAsync" ->
+             request_stop_watching t fd `Read `Closed;
+             request_stop_watching t fd `Write `Closed;
+             remove_fd t fd;
+             set_state t Closed;
+          | _ -> sync_changed_fd_failed t fd desired exn);
       (* We modify Async's data structures after calling [F.set], so that
          the error message produced by [sync_changed_fd_failed] displays
          them as they were before the call. *)
