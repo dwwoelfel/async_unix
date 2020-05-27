@@ -109,9 +109,17 @@ let set t file_descr desired =
   in
   match actual_flags, desired_flags with
   | None, None -> ()
-  | None, Some d -> Epoll.set t.epoll file_descr d
-  | Some _, None -> Epoll.remove t.epoll file_descr
-  | Some a, Some d -> if not (Flags.equal a d) then Epoll.set t.epoll file_descr d
+  | None, Some d ->
+     try
+       Epoll.set t.epoll file_descr d
+     with
+     | Unix.Unix_error _ -> ()
+  | Some _, None ->
+     try
+       Epoll.remove t.epoll file_descr
+     with
+     | Unix.Unix_error _ -> ()
+  | Some a, Some d -> if not (Flags.equal a d) then try Epoll.set t.epoll file_descr d with | Unix.Unix_error _ -> ()
 ;;
 
 module Pre = struct
